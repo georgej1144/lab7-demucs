@@ -32,6 +32,19 @@ RUSTFS_PASS = os.getenv("RUSTFS_PASS")
 
 mc = minio.Minio(RUSTFS_HOST, access_key=RUSTFS_USER, secret_key=RUSTFS_PASS, secure=False)
 
+from minio.error import S3Error
+
+# make sure the buckets we use exist, creating any that don't
+for name in ["queue", "output"]:
+    try:
+        if not mc.bucket_exists(name):
+            # if the bucket with name doesnt exist, make it
+            mc.make_bucket(name)
+            log_info(f"[rest]: startup: created bucket {name}")
+    except:
+        # if we can't make the buckets, bad news. fail.
+        raise
+
 
 @app.route('/', methods=['GET'])
 def hello():
@@ -39,7 +52,7 @@ def hello():
 
 @app.route("/apiv1/separate", methods=["POST"])
 def separate():
-    log_debug("[separate]: endpoint hit")
+    log_debug("[rest]: separate: endpoint hit")
     body = request.get_json()
     # get file from req
     data = base64.b64decode(body["mp3"])
@@ -54,20 +67,20 @@ def separate():
     # send the job message to redis message queue
     r.lpush("toWorker", json.dumps(job))
     # log it!
-    log_info(f"[separate]: enqueued {songhash}")
+    log_info(f"[rest]: separate: enqueued {songhash}")
     # return json with hash and message
     return jsonify({"hash": songhash, "reason": "Song enqueued for separation"})
 
 @app.route("/apiv1/queue", methods=["GET"])
 def queue():
-    log_debug("[queue]: endpoint hit")
+    log_debug("[rest]: queue: endpoint hit")
     # for all messages in "toWorker", get the "hash" field from its JSON and keep it in items
     items = [json.loads(x)["hash"] for x in r.lrange("toWorker", 0, -1)]
     return jsonify({"queue": items})
 
 @app.route("/apiv1/track/<songhash>/<track>", methods=["GET"])
 def get_track(songhash, track):
-    log_debug("[get_track]: endpoint hit")
+    log_debug("[rest]: get_track: endpoint hit")
     # fetch the track from the output bucket 
     obj = mc.get_object("output", f"{songhash}.{track}")
     # forward the response from the bucket (with non-default mimetype)
@@ -77,7 +90,7 @@ def get_track(songhash, track):
 # accept GET and DELETE, get for convenience and DELETE for semantics (rest/README.md)
 @app.route("/apiv1/remove/<songhash>/<track>", methods=["GET", "DELETE"])
 def remove(songhash, track):
-    log_debug("[remove]: endpoint hit")
+    log_debug("[rest] remove: endpoint hit")
     # remove the track from the output bucket
     mc.remove_object("output", f"{songhash}.{track}")
     # forward the response (good or bad) from the bucket

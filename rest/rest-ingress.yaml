@@ -7,9 +7,9 @@ metadata:
   name: rest-ingress
   annotations:
     # use the shared ingress-nginx
-    kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/proxy-body-size: 16m
 spec:
+  ingressClassName: nginx # changed to non-depricated version of same thing
   rules:
   - http:
       paths:
