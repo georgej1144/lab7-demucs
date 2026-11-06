@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest
+spec:
+  selector:
+    matchLabels:
+      app: rest
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rest
+    spec:
+      containers:
+      - name: rest
+        image: c0ntrol1144/lab7-rest:v1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: RUSTFS_HOST
+          value: "rustfs-svc.rustfs-ns:9000"
+          # added to kubernetes store with `kubectl create secret generic [keychain name] --from-literal=[key]=[value]`
+        - name: RUSTFS_USER
+          valueFrom:
+          # kubectl create secret generic rustfs-creds --from-literal=RUSTFS_USER=gejo6742 --from-literal=RUSTFS_PASS=SuperBatteryCat
+            secretKeyRef:
+              name: rustfs-creds
+              key: RUSTFS_USER
+        - name: RUSTFS_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rustfs-creds
+              key: RUSTFS_PASS
+        ports:
+        - containerPort: 5000
+---

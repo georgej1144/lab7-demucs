@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: worker
+        image: c0ntrol1144/lab7-worker:v1
+        resources:
+          requests:
+            cpu: "1"
+            memory: 6Gi
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: RUSTFS_HOST
+          value: "rustfs-svc.rustfs-ns:9000"
+          # added to kubernetes store with `kubectl create secret generic [keychain name] --from-literal=[key]=[value]`
+        - name: RUSTFS_USER
+          valueFrom:
+            secretKeyRef:
+              name: rustfs-creds
+              key: RUSTFS_USER
+        - name: RUSTFS_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rustfs-creds
+              key: RUSTFS_PASS
+---

@@ -4,13 +4,20 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: frontend-ingress
+  name: rest-ingress
   annotations:
     # use the shared ingress-nginx
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/proxy-body-size: 16m
 spec:
   rules:
-#
-# Your ingress rules here
-#
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rest  # traffic from port 5000 goes to the `rest` service
+            port:
+              number: 5000
+---
